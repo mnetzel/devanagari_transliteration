@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Devanagari do IAST</title>
+    <link rel="stylesheet" href="styles.css?v=20260428-01">
+    <script src="https://cdn.jsdelivr.net/npm/@indic-transliteration/sanscript@1.3.3/sanscript.js" defer></script>
+    <script src="app.js?v=20260428-01" defer></script>
+  </head>
+  <body>
+    <main class="app">
+      <header class="app-header">
+        <p class="eyebrow">Transliteracja sanskrytu</p>
+        <h1>Devanagari do IAST</h1>
+      </header>
+
+      <section class="workspace" aria-label="Konwerter transliteracji">
+        <div class="field">
+          <label for="source">Devanagari</label>
+          <textarea id="source" spellcheck="false" placeholder="Wklej tekst, np. भगवद्गीता">ॐ हिरण्यवर्णाम हरिणीं सुवर्णरजतस्रजाम्।
+चन्द्रां हिरण्मयीं लक्ष्मीं जातवेदो म आवह॥१॥
+
+तां म आवह जातवेदो लक्ष्मीमनपगामिनीम्।
+यस्यां हिरण्यं विन्देयं गामश्वं पुरुषानहम्॥२॥
+
+अश्वपूर्वां रथमध्यां हस्तिनादप्रबोधिनीम्।
+श्रियं देवीमुपह्वये श्रीर्मादेवी जुषताम्॥३॥</textarea>
+        </div>
+
+        <div class="field">
+          <div class="label-row">
+            <label for="result">IAST</label>
+            <button id="copy" class="copy-button" type="button">Kopiuj</button>
+          </div>
+          <textarea id="result" spellcheck="false" readonly placeholder="Tutaj pojawi się transliteracja"></textarea>
+        </div>
+
+        <div class="field field-wide">
+          <div class="label-row">
+            <label for="interlinear">Przeplot wers po wersie</label>
+            <button id="spacing-toggle" class="copy-button secondary-button" type="button" aria-pressed="true">Odstępy: wł.</button>
+          </div>
+          <div id="interlinear" class="interlinear" role="region" aria-live="polite" tabindex="0">
+            <p class="empty-state">Tutaj pojawi się Devanagari i IAST w przeplocie</p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="status" id="status" aria-live="polite"></footer>
+    </main>
+  </body>
+</html>
