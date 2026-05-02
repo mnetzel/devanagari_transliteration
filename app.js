@@ -4,6 +4,7 @@ const interlinear = document.querySelector("#interlinear");
 const status = document.querySelector("#status");
 const copyButton = document.querySelector("#copy");
 const spacingToggle = document.querySelector("#spacing-toggle");
+const SOURCE_STORAGE_KEY = "devanagariTransliteration.sourceText";
 const DEVANAGARI_BLOCK = /[\u0900-\u097f]/;
 const CONSONANT = /[\u0915-\u0939\u0958-\u095f]/;
 const INDEPENDENT_VOWEL = /[\u0904-\u0914\u0960\u0961]/;
@@ -17,6 +18,30 @@ const SVARA_MARKS = /[\u0951-\u0957\u1cd0-\u1cff\ua8e0-\ua8f1]/gu;
 
 function setStatus(message) {
   status.textContent = message;
+}
+
+function loadSavedSourceText() {
+  try {
+    return localStorage.getItem(SOURCE_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function saveSourceText(text) {
+  try {
+    localStorage.setItem(SOURCE_STORAGE_KEY, text);
+  } catch {
+    // Some browsers block localStorage in private or locked-down contexts.
+  }
+}
+
+function restoreSourceText() {
+  const savedText = loadSavedSourceText();
+
+  if (savedText !== null) {
+    source.value = savedText;
+  }
 }
 
 function stripSvara(text) {
@@ -318,7 +343,10 @@ async function copyResult() {
 
 copyButton.addEventListener("click", copyResult);
 spacingToggle.addEventListener("click", toggleSpacing);
-source.addEventListener("input", transliterate);
+source.addEventListener("input", () => {
+  saveSourceText(source.value);
+  transliterate();
+});
 interlinear.addEventListener("mouseover", (event) => {
   const token = event.target.closest("[data-pair-id]");
 
@@ -339,4 +367,5 @@ interlinear.addEventListener("mouseout", (event) => {
 });
 window.addEventListener("load", transliterate);
 
+restoreSourceText();
 copyButton.disabled = true;
