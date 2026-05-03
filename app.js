@@ -216,14 +216,25 @@ function appendToken(row, token, pairId, script) {
   row.append(span);
 }
 
-function createLineAction(lineIndex) {
-  const action = document.createElement("button");
+function createLineActions(lineIndex, iastText) {
+  const actions = document.createElement("div");
+  const sourceAction = document.createElement("button");
+  const iastAction = document.createElement("button");
 
-  action.className = "line-action";
-  action.type = "button";
-  action.dataset.lineIndex = String(lineIndex);
-  action.textContent = "Kopiuj i wytnij";
-  return action;
+  actions.className = "line-actions";
+
+  sourceAction.className = "line-action line-action-source";
+  sourceAction.type = "button";
+  sourceAction.dataset.lineIndex = String(lineIndex);
+  sourceAction.textContent = "Kopiuj Devanagari";
+
+  iastAction.className = "line-action line-action-iast";
+  iastAction.type = "button";
+  iastAction.dataset.iast = iastText;
+  iastAction.textContent = "Kopiuj IAST";
+
+  actions.append(sourceAction, iastAction);
+  return actions;
 }
 
 function renderInterlinear(text) {
@@ -257,6 +268,7 @@ function renderInterlinear(text) {
     iastRow.className = "interlinear-row interlinear-iast";
 
     const tokens = tokenizeLine(line);
+    const iastText = toIast(line);
 
     tokens.forEach((token, index) => {
       const id = String(pairId);
@@ -273,7 +285,7 @@ function renderInterlinear(text) {
       }
     });
 
-    lineBlock.append(sourceRow, iastRow, createLineAction(lineIndex));
+    lineBlock.append(sourceRow, iastRow, createLineActions(lineIndex, iastText));
     interlinear.append(lineBlock);
   });
 }
@@ -342,14 +354,8 @@ async function copyResult() {
     return;
   }
 
-  try {
-    await navigator.clipboard.writeText(result.value);
-    setStatus("Skopiowano transliterację.");
-  } catch {
-    result.select();
-    document.execCommand("copy");
-    setStatus("Skopiowano transliterację.");
-  }
+  await writeClipboard(result.value);
+  setStatus("Skopiowano transliterację.");
 }
 
 async function writeClipboard(text) {
@@ -369,7 +375,27 @@ async function writeClipboard(text) {
   }
 }
 
-async function copyAndCutLine(lineIndex) {
+function refreshOutputOnly() {
+  const text = source.value;
+  const cleanText = stripSvara(text);
+
+  result.value = text.trim() && window.Sanscript ? toIast(cleanText) : "";
+  copyButton.disabled = result.value.length === 0;
+}
+
+function updateSourceLineIndexes(removedLineIndex) {
+  interlinear.querySelectorAll(".line-action-source").forEach((action) => {
+    const lineIndex = Number(action.dataset.lineIndex);
+
+    if (lineIndex > removedLineIndex) {
+      action.dataset.lineIndex = String(lineIndex - 1);
+    }
+  });
+}
+
+async function copyAndCutSourceLine(action) {
+  const lineBlock = action.closest(".interlinear-line");
+  const lineIndex = Number(action.dataset.lineIndex);
   const lines = source.value.split(/\r?\n/);
   const line = lines[lineIndex];
 
@@ -381,8 +407,25 @@ async function copyAndCutLine(lineIndex) {
   lines.splice(lineIndex, 1);
   source.value = lines.join("\n");
   saveSourceText(source.value);
-  transliterate();
-  setStatus("Skopiowano i usunięto wers.");
+  refreshOutputOnly();
+  updateSourceLineIndexes(lineIndex);
+
+  lineBlock?.querySelector(".interlinear-source")?.remove();
+  action.remove();
+  lineBlock?.classList.add("line-source-cut");
+  setStatus("Skopiowano i usunięto Devanagari. IAST został pod spodem.");
+}
+
+async function copyIastLine(action) {
+  const lineBlock = action.closest(".interlinear-line");
+
+  await writeClipboard(action.dataset.iast || "");
+
+  if (lineBlock?.classList.contains("line-source-cut")) {
+    lineBlock.remove();
+  }
+
+  setStatus("Skopiowano IAST.");
 }
 
 copyButton.addEventListener("click", copyResult);
@@ -416,7 +459,14 @@ interlinear.addEventListener("click", (event) => {
     return;
   }
 
-  copyAndCutLine(Number(action.dataset.lineIndex));
+  if (action.classList.contains("line-action-source")) {
+    copyAndCutSourceLine(action);
+    return;
+  }
+
+  if (action.classList.contains("line-action-iast")) {
+    copyIastLine(action);
+  }
 });
 window.addEventListener("load", transliterate);
 
