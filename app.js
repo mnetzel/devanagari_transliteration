@@ -216,6 +216,16 @@ function appendToken(row, token, pairId, script) {
   row.append(span);
 }
 
+function createLineAction(lineIndex) {
+  const action = document.createElement("button");
+
+  action.className = "line-action";
+  action.type = "button";
+  action.dataset.lineIndex = String(lineIndex);
+  action.textContent = "Kopiuj i wytnij";
+  return action;
+}
+
 function renderInterlinear(text) {
   interlinear.replaceChildren();
 
@@ -229,11 +239,12 @@ function renderInterlinear(text) {
 
   let pairId = 0;
 
-  text.split(/\r?\n/).forEach((line) => {
+  text.split(/\r?\n/).forEach((rawLine, lineIndex) => {
+    const line = stripSvara(rawLine);
     const lineBlock = document.createElement("div");
     lineBlock.className = "interlinear-line";
 
-    if (!line.trim()) {
+    if (!rawLine.trim()) {
       lineBlock.classList.add("interlinear-line-empty");
       interlinear.append(lineBlock);
       return;
@@ -262,7 +273,7 @@ function renderInterlinear(text) {
       }
     });
 
-    lineBlock.append(sourceRow, iastRow);
+    lineBlock.append(sourceRow, iastRow, createLineAction(lineIndex));
     interlinear.append(lineBlock);
   });
 }
@@ -321,7 +332,7 @@ function transliterate() {
   }
 
   result.value = toIast(cleanText);
-  renderInterlinear(cleanText);
+  renderInterlinear(text);
   copyButton.disabled = result.value.length === 0;
   setStatus("Gotowe.");
 }
@@ -339,6 +350,39 @@ async function copyResult() {
     document.execCommand("copy");
     setStatus("Skopiowano transliterację.");
   }
+}
+
+async function writeClipboard(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const scratch = document.createElement("textarea");
+
+    scratch.value = text;
+    scratch.setAttribute("readonly", "");
+    scratch.style.position = "fixed";
+    scratch.style.left = "-9999px";
+    document.body.append(scratch);
+    scratch.select();
+    document.execCommand("copy");
+    scratch.remove();
+  }
+}
+
+async function copyAndCutLine(lineIndex) {
+  const lines = source.value.split(/\r?\n/);
+  const line = lines[lineIndex];
+
+  if (line === undefined) {
+    return;
+  }
+
+  await writeClipboard(line);
+  lines.splice(lineIndex, 1);
+  source.value = lines.join("\n");
+  saveSourceText(source.value);
+  transliterate();
+  setStatus("Skopiowano i usunięto wers.");
 }
 
 copyButton.addEventListener("click", copyResult);
@@ -364,6 +408,15 @@ interlinear.addEventListener("mouseout", (event) => {
   }
 
   highlightPair(token.dataset.pairId, false);
+});
+interlinear.addEventListener("click", (event) => {
+  const action = event.target.closest(".line-action");
+
+  if (!action || !interlinear.contains(action)) {
+    return;
+  }
+
+  copyAndCutLine(Number(action.dataset.lineIndex));
 });
 window.addEventListener("load", transliterate);
 
